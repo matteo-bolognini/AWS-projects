@@ -1,0 +1,64 @@
+import requests
+import json
+import boto3
+
+client = boto3.client('secretsmanager')
+
+jamf_url = "https://myinstance.jamfcloud.com"
+presigned_url = "https://example.s3.eu-west-2.amazonaws.com/" #This will be the S3 object URL or pre-signed URL
+
+def lambda_handler(event, context): 
+    
+    output = json.loads(event["body"])
+    device_removed = output['event']['groupRemovedDevicesIds']
+    device_removed_check = str(device_removed)[1:-1]
+
+    if device_removed_check != "":
+        print(f"This webhook have been generated for a device being removed from the Smart Group, nothing to do here. Device ID {device_removed}")
+    
+    else:
+        device_id = output['event']['groupAddedDevicesIds']
+        
+        response = client.get_secret_value(
+            SecretId='')
+        
+        secretDict = json.loads(response['SecretString'])
+        api_user = secretDict['']
+        api_password = secretDict['']
+        
+        token_url = f"{jamf_url}/api/v1/auth/token"
+        headers = {"Accept": "application/json"}
+        
+        resp = requests.post(token_url, auth=(api_user, api_password), headers=headers)
+        resp.raise_for_status()
+        resp_data = resp.json()
+        
+        print(f"Access token granted, valid until {resp_data['expires']}.")
+        
+        data = resp.json()
+        token = data["token"]
+        
+        url = f"{jamf_url}/api/v1/deploy-package?verbose=true"
+        
+        payload = {
+            "manifest": {
+                "url": presigned_url,
+                "hash": "",
+                "hashType": "MD5",
+                "bundleId": "com.jamf.gatekeeper.enable",
+                "bundleVersion": "1.0.0",
+                "subtitle": "Subtitle",
+                "title": "EnableGatekeeper.pkg",
+                "sizeInBytes": 
+            },
+            "installAsManaged": False,
+            "devices": device_id,
+        }
+        
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json"
+        }
+        
+        response = requests.post(url, json=payload, headers=headers)
+        print(f"Jamf Pro API call HTTP Status: {response.status_code}")
