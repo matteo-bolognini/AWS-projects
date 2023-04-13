@@ -65,7 +65,7 @@ def lambda_handler(event, context):
     
     if is_member:
         print("isMember is True")
-        url = f"https://mkrldfw.pub.jamf.build/JSSResource/computers/id/{device_id}"
+        url = f"https://{jamf_url}.jamfcloud.com/JSSResource/computers/id/{device_id}"
         headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
         response = requests.delete(url, headers=headers)
         print(f"Status Code: {response.status_code}")
