@@ -4,7 +4,7 @@ import datetime
 import boto3
 import http.client
 
-client = boto3.client('secretsmanager')
+client = boto3.client('MY_SECRET_MANAGER')
 
 jamf_url = "MY_INSTANCE"
 
